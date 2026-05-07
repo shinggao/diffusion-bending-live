@@ -92,7 +92,7 @@ def generate_video(audio_path, prompt_file_path, layer, bend_function, audio_fea
     do_classifier_free_guidance = True if guidance_scale > 1.0 else False
     t_index_list = [0, 16, 32, 45]  # I think that the number of layers equals the len of this list
 
-    def txt2img(wrapper, prompt, noise, bending_fn):
+    def txt2img(wrapper, prompt, noise, bending_fn, frame_index):
         wrapper.prepare(
             prompt=prompt,
             num_inference_steps=50,
@@ -101,12 +101,11 @@ def generate_video(audio_path, prompt_file_path, layer, bend_function, audio_fea
             input_noise=noise
         )
 
-        count = len(list(output.iterdir()))
         output_images = wrapper()
-        output_images.save(os.path.join(output, f"{count:05}.png"))
+        output_images.save(os.path.join(output, f"{frame_index:05}.png"))
 
 
-    def encoding2img(wrapper, encoding, noise, bending_fn):
+    def encoding2img(wrapper, encoding, noise, bending_fn, frame_index):
         wrapper.prepare(
             prompt_encoding=encoding,
             num_inference_steps=50,
@@ -114,9 +113,8 @@ def generate_video(audio_path, prompt_file_path, layer, bend_function, audio_fea
             bending_fn=bending_fn,
             input_noise=noise
         )
-        count = len(list(output.iterdir()))
         output_images = wrapper()
-        output_images.save(os.path.join(output, f"{count:05}.png"))
+        output_images.save(os.path.join(output, f"{frame_index:05}.png"))
 
 
     def encode_prompt(wrapper, prompt):
@@ -150,7 +148,7 @@ def generate_video(audio_path, prompt_file_path, layer, bend_function, audio_fea
 
     if not TXT2IMG:
         # generate first frame using txt2img
-        txt2img(wrapper, prompt, None, None)
+        txt2img(wrapper, prompt, None, None, 0)
         # create img2img stream
         wrapper = StreamDiffusionWrapper(
                 model_id_or_path=model_id_or_path,
@@ -336,7 +334,7 @@ def generate_video(audio_path, prompt_file_path, layer, bend_function, audio_fea
             except IndexError:
                 # the length of prompt_embeddings is shorter than num_frames, so just use the previous prompt_embedding
                 pass
-            encoding2img(wrapper, prompt_embedding, batched_noise[i], bend)
+            encoding2img(wrapper, prompt_embedding, batched_noise[i], bend, i)
         else:
             if i == 0: continue
             guidance_scale = 0.5

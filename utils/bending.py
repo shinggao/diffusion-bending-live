@@ -324,11 +324,7 @@ def subtract_full(r):
 
 def threshold(r):
     def thresh(x):
-        device = x.get_device()
-        x = x.cpu()
-        x = x.apply_(lambda y: y if abs(y) >= r else 0)
-        x = x.to(device)
-        return x
+        return torch.where(x.abs() >= r, x, torch.zeros_like(x))
     return thresh
 
 
@@ -351,21 +347,13 @@ def soft_threshold2(r):
     source: https://pywavelets.readthedocs.io/en/latest/ref/thresholding-functions.html
     """
     def fn(x):
-        device = x.get_device()
-        x = x.cpu()
-        x = x.apply_(lambda y: 0 if abs(y) < r else y*(1-r))
-        x = x.to(device)
-        return x
+        return torch.where(x.abs() < r, torch.zeros_like(x), x * (1 - r))
     return fn
 
 
 def inversion(r):
     def foo(x):
-        device = x.get_device()
-        x = x.cpu()
-        x = x.apply_(lambda y: 1./r - y)
-        x = x.to(device)
-        return x
+        return (1.0 / r) - x
     return foo
 
 
@@ -814,11 +802,7 @@ def absolute(r):
     Return a fn that computes the absolute value of a tensor
     """
     def fn(x):
-        device = x.get_device()
-        x = x.cpu()
-        x = x.apply_(lambda y: abs(y))
-        x = x.to(device)
-        return x
+        return x.abs()
     return fn
 
 
@@ -827,11 +811,7 @@ def log(r=math.e):
     Return a fn that computes the log of a tensor with base r. Must first ensure that it is non-negative
     """
     def fn(x):
-        device = x.get_device() if x.get_device() is not None else 'cpu'
-        x = x.cpu()
-        x = x.apply_(lambda y: abs(y))
-        x = x.to(device)
-        return torch.log(x) / math.log(r)
+        return torch.log(x.abs()) / math.log(r)
     return fn
 
 def clamp(r):
@@ -839,12 +819,8 @@ def clamp(r):
     Return a fn that clamps a tensor between min and max
     """
     def fn(x):
-        min, max = r
-        device = x.get_device()
-        x = x.cpu()
-        x = x.apply_(lambda y: min if y < min else max if y > max else y)
-        x = x.to(device)
-        return x
+        lo, hi = r
+        return torch.clamp(x, min=lo, max=hi)
     return fn
 
 def scale(r):
@@ -852,14 +828,10 @@ def scale(r):
     Return a fn that scales a tensor between min and max based on the tensor's min and max
     """
     def fn(x):
-        min, max = r
-        device = x.get_device()
-        x = x.cpu()
+        lo, hi = r
         xmin = x.min()
-        xmax = x.max()  
-        x = x.apply_(lambda y: (y - xmin) / (xmax - xmin) *(max - min) + min)
-        x = x.to(device)
-        return x
+        xmax = x.max()
+        return (x - xmin) / (xmax - xmin) * (hi - lo) + lo
     return fn
 
 

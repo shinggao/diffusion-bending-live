@@ -287,7 +287,7 @@ def add_full(r):
     Return a fn that takes in a latent tensor and returns a tensor of the same shape, but with the value r
     added to every element
     """
-    return lambda x: x + (torch.ones_like(x) * r)
+    return lambda x: x + r
 
 
 def multiply(r):
@@ -319,7 +319,7 @@ def subtract_full(r):
     Return a fn that takes in a latent tensor and returns a tensor of the same shape, but with the value r
     subtracted from every element
     """
-    return lambda x: x - (torch.ones_like(x) * r)
+    return lambda x: x - r
 
 
 def threshold(r):

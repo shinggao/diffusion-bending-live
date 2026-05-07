@@ -286,11 +286,13 @@ def generate_video(audio_path, prompt_file_path, layer, bend_function, audio_fea
 
         # calculate min/max for scaling
         if bend_function is not None:
-            audio_features_max = max(audio_features)
-            audio_features_min = min(audio_features)
+            af_array = np.asarray(audio_features, dtype=float)
+            audio_features_min = float(af_array.min())
+            audio_features_max = float(af_array.max())
             bending_function_min, bending_function_max = bending_functions_range[bend_function]
-            # rescale audio features to the range that the bending fn expects
-            audio_features = [util.scale_range(x, audio_features_min, audio_features_max, bending_function_min, bending_function_max) for x in audio_features]
+            # rescale audio features to the range that the bending fn expects (vectorized)
+            af_array = (af_array - audio_features_min) * (bending_function_max - bending_function_min) / (audio_features_max - audio_features_min) + bending_function_min
+            audio_features = af_array.tolist()
 
         # plot audio features
         if DEBUG:

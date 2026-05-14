@@ -76,6 +76,40 @@ This file contains the main function `generate_video`, which creates music-react
   - Outputs:
     - A video file saved in the `video_outputs` directory.
 
+### `examples/live_audio2video/` (experimental, live-input branch)
+
+A streaming variant of `audio2video.py` that drives Stable Diffusion + network bending from **live microphone input** instead of a pre-recorded `.wav`. Audio captured at 48 kHz feeds the bending operator inside the U-Net frame-by-frame; a preview window shows the current diffusion frame stacked on top of a live waveform plus an HUD with the measured FPS and current feature values. Press `q` or `Esc` to stop. On exit, the rendered frames plus the captured mic audio are muxed into an mp4 under `live_video_outputs/`.
+
+Extra dependency:
+```
+pip install sounddevice
+# (soundfile is already pulled in by librosa, but if missing: pip install soundfile)
+# For --matrix-mode opentsne only: pip install openTSNE
+```
+
+List audio inputs (no model load):
+```
+python examples/live_audio2video/live_audio2video.py --list-devices
+```
+
+End-to-end run with a single startup prompt (one line `0:00 : prompt text` in a file):
+```
+python examples/live_audio2video/live_audio2video.py \
+    --prompt-file inputs/test.txt \
+    --bend multiply --feature rms --layer 1 --seed 42
+```
+
+Files under `examples/live_audio2video/`:
+- `live_audio.py` — mic capture, ring buffer, simultaneous wav recorder.
+- `live_smoothing.py` — causal/streaming replacement for the offline `bending.smooth(...)`.
+- `live_features.py` — scalar features (pass-through to `utils.bending`) + EnCodec matrix path with online dim-reduction (`pca` / `slice` / `opentsne`).
+- `live_prompts.py` — `MM:SS : prompt` schedule, encoded once at startup, wall-clock-lerped per frame.
+- `live_engine.py` — persistent `StreamDiffusionWrapper` + per-frame hot path (CLIP encoding bypassed via cached embeddings).
+- `live_output.py` — `cv2.imshow` preview window + `FrameRecorder` (PNG staging + ffmpeg mux on quit).
+- `live_audio2video.py` — argparse entry point.
+
+Use `--layer 420` to disable the bending hook for an A/B baseline (matches the offline trick from `batch.py`). Use `--no-save` for preview-only runs that don't write to `live_video_outputs/`.
+
 ### `examples/audio2video/batch.py`
 
 This file allows batch processing of multiple video generations by calling the `generate_video` function with different configurations.

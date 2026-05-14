@@ -1,0 +1,3 @@
+# Ignore videos outputted by the live pipeline (and per-run .staging/ subdirs)
+*
+!.gitignore
